@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>图片上传与展示</title>
+    <script src="/js/dom-to-image.min.js"></script>
+    <style>
+      body {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+        font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
+        background-color: #fafafa;
+      }
+
+      h1 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 10px;
+        font-size: 32px;
+        font-weight: bold;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .container {
+        display: flex;
+        gap: 30px;
+        margin: 20px auto;
+        align-items: flex-start;
+        padding-right: 400px;
+      }
+
+      .left-panel {
+        flex: 1;
+        background: white;
+        padding: 25px;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      }
+
+      .right-panel {
+        width: 375px;
+        background: white;
+        padding: 25px;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        position: fixed;
+        right: 10%;
+        top: 50px;
+      }
+
+      .image-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 15px;
+        margin: 20px 0;
+        padding: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      #imageContainer {
+        margin: 0 auto 20px;
+      }
+
+      .adjustment-controls {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+        justify-content: center;
+      }
+
+      /* 调整按钮组样式 */
+      .name-buttons {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
+      .name-input {
+        margin-bottom: 20px;
+      }
+
+      .name-input input,
+      .name-input textarea {
+        width: 100%;
+        padding: 10px 16px;
+        border: 2px solid #eee;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        margin-bottom: 10px;
+      }
+
+      .name-input textarea {
+        height: 80px;
+        resize: vertical;
+        font-family: inherit;
+      }
+
+      .name-input input:focus,
+      .name-input textarea:focus {
+        border-color: #ff6b6b;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
+      }
+
+      .button-group {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        background: #ff6b6b;
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 15px;
+        font-weight: 500;
+        box-shadow: 0 2px 8px rgba(255, 107, 107, 0.2);
+      }
+
+      button:hover {
+        background: #ff5252;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+      }
+
+      input[type="file"] {
+        margin-bottom: 20px;
+        padding: 10px;
+        width: 95%;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 2px dashed #ddd;
+        position: relative;
+      }
+
+      input[type="file"]::before {
+        content: "上传自定义背景图";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        color: #666;
+        font-size: 14px;
+      }
+
+      .image-list img {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+      }
+
+      .image-list img:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        border-color: #ff6b6b;
+      }
+
+      #imageContainer {
+        width: 375px;
+        height: 563px;
+        margin: 10px auto;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+        background: white;
+        position: relative;
+      }
+
+      #download {
+        display: block;
+        width: 220px;
+        margin: 10px auto;
+        padding: 14px 28px;
+        font-size: 16px;
+        font-weight: bold;
+        background: #4caf50;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.2);
+      }
+
+      #download:hover {
+        background: #45a049;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
+      }
+
+      /* 调整按钮样式 */
+      #top,
+      #bottom {
+        background: #5c7cfa;
+        box-shadow: 0 2px 8px rgba(92, 124, 250, 0.2);
+      }
+
+      #top:hover,
+      #bottom:hover {
+        background: #4263eb;
+        box-shadow: 0 4px 12px rgba(92, 124, 250, 0.3);
+      }
+
+      #bg {
+        width: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+      .content {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        height: 46%;
+        background: url("/img/da041a3a-936b-4c15-9888-95312eeae28c.png")
+          no-repeat center 0;
+        background-size: 100% 100%;
+      }
+      .name {
+        padding: 18px 245px 0 0;
+        text-align: right;
+        font-size: 22px;
+        font-weight: bold;
+
+        /* 修改渐变方向为左下到右上 */
+        background: linear-gradient(to right top, #ff8c00, #ffd700);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        /* 添加文字描边效果增加可读性 */
+        -webkit-text-stroke: 0.3px rgba(255, 140, 0, 0.3);
+      }
+      .content-text {
+        padding: 0 80px;
+        text-align: center;
+        font-size: 20px;
+        max-height: 120px;
+        /* 添加渐变色文字效果 */
+        background: linear-gradient(to right top, #ffd700, #ff8c00);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        /* 添加文字描边效果增加可读性 */
+        -webkit-text-stroke: 0.3px rgba(255, 140, 0, 0.3);
+      }
+      .bottom-text {
+        position: absolute;
+        left: 0;
+        bottom: 20px;
+        width: 100%;
+        color: #eee;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 400;
+      }
+
+      /* 添加AI图片生成器样式 */
+      .ai-image-generator {
+        background: #fff;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        margin-bottom: 24px;
+      }
+
+      .input-group {
+        margin-bottom: 16px;
+      }
+
+      .input-label {
+        display: block;
+        color: #333;
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 8px;
+      }
+
+      .input-field {
+        width: 90%;
+        padding: 10px 12px;
+        border: 2px solid #eee;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        background: #f8f9fa;
+      }
+
+      .input-field:focus {
+        border-color: #ff6b6b;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
+      }
+
+      .size-controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+
+      .size-input {
+        width: 100%;
+      }
+
+      .strength-container {
+        margin-bottom: 20px;
+      }
+
+      .strength-slider {
+        width: 100%;
+        height: 6px;
+        background: #eee;
+        border-radius: 3px;
+        outline: none;
+        -webkit-appearance: none;
+      }
+
+      .strength-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 18px;
+        height: 18px;
+        background: #ff6b6b;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .strength-slider::-webkit-slider-thumb:hover {
+        transform: scale(1.1);
+      }
+
+      .generate-btn {
+        width: 100%;
+        padding: 12px;
+        background: #ff6b6b;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 16px;
+      }
+
+      .generate-btn:hover {
+        background: #ff5252;
+        transform: translateY(-2px);
+      }
+
+      .generate-btn:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .result-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+
+      .result-grid img {
+        width: 100%;
+        border-radius: 8px;
+        transition: transform 0.3s ease;
+      }
+
+      .result-grid img:hover {
+        transform: scale(1.05);
+      }
+
+      .button-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .button-group button {
+        padding: 8px 16px;
+        background: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .button-group button:hover {
+        background: #45a049;
+        transform: translateY(-2px);
+      }
+
+      .generating-status {
+        display: none;
+        text-align: center;
+        color: #666;
+        margin-top: 16px;
+        padding: 16px;
+        background: #f8f9fa;
+        border-radius: 8px;
+      }
+
+      /* 优化模态框样式 */
+      .modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 20px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .modal.show {
+        opacity: 1;
+      }
+
+      .modal img {
+        max-width: 90%;
+        max-height: 90vh;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+
+      /* 响应式调整 */
+      @media (max-width: 640px) {
+        .size-controls {
+          grid-template-columns: 1fr;
+        }
+
+        .result-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>新年祝福海报生成器</h1>
+
+    <div class="container">
+      <div class="left-panel">
+        <input
+          type="file"
+          id="fileInput"
+          accept="image/*"
+          placeholder="请选择图片文件"
+          title="点击上传背景图片（支持jpg、png等格式）"
+        />
+
+        <div class="name-buttons">
+          <button id="btn1">张三</button>
+          <button id="btn2">李四</button>
+          <button id="btn3">王五</button>
+          <button id="btn4">赵六</button>
+        </div>
+
+        <div class="name-input">
+          <input
+            type="text"
+            id="name"
+            placeholder="请输入自定义名字"
+            style="width: 90%"
+          />
+          <textarea
+            id="content"
+            placeholder="请输入自定义祝福语"
+            style="width: 90%"
+          ></textarea>
+        </div>
+
+        <!-- 添加AI生成图片控件 -->
+        <div class="ai-image-generator">
+          <div class="credits-container">
+          
+
+          <div class="input-group mb-4">
+            <label class="input-label">SessionID:</label>
+            <input
+              type="text"
+              id="sessionId"
+              class="input-field"
+            />
+          </div>
+
+          <div class="input-group mb-4">
+            <label class="input-label">提示词:</label>
+            <textarea
+              id="imagePrompt"
+             
+              placeholder="输入图片描述，例如：新年红色喜庆背景，金色祥云，中国风"
+              class="input-field"
+              rows="3"
+            >主题: 新年祝福
+角色: 生成单人成年人3d卡通形象，穿着红色毛衣或大衣，流仔裤或者裙子，脚上是板鞋，手持礼物或者礼盒。女生
+背景: 蛇年节日氛围，可能有烟花和灯笼，营造出喜庆的场景。
+          </textarea>
+          </div>
+
+          <div class="size-controls">
+            <div class="size-input">
+              <label class="input-label">宽度:</label>
+              <input
+                type="number"
+                id="imageWidth"
+                value="750"
+                min="64"
+                max="2048"
+                step="64"
+                class="input-field"
+              />
+            </div>
+            <div class="size-input">
+              <label class="input-label">高度:</label>
+              <input
+                type="number"
+                id="imageHeight"
+                value="1024"
+                min="64"
+                max="2048"
+                step="64"
+                class="input-field"
+              />
+            </div>
+          </div>
+
+          <button id="generateImage" class="generate-btn">AI生成图片</button>
+
+          <div id="generationResult" class="generation-result">
+            <div id="resultGallery" class="result-grid"></div>
+            <div id="downloadButtons" class="button-group"></div>
+          </div>
+
+          <div id="generatingStatus" class="generating-status">
+            <p>图片生成中，请稍候...</p>
+            <p id="progressText"></p>
+          </div>
+        </div>
+
+        <div class="image-list">
+          <img src="/img/bg/1.png" alt="背景1" />
+          <img src="/img/bg/2.jpeg" alt="背景2" />
+          <img src="/img/bg/3.jpeg" alt="背景3" />
+          <img src="/img/bg/4.jpeg" alt="背景4" />
+          <img src="/img/bg/5.jpeg" alt="背景5" />
+          <img src="/img/bg/6.jpeg" alt="背景6" />
+          <img src="/img/bg/7.jpeg" alt="背景7" />
+          <img src="/img/bg/8.jpeg" alt="背景8" />
+          <img src="/img/bg/9.jpeg" alt="背景9" />
+          <img src="/img/bg/10.jpeg" alt="背景10" />
+          <img src="/img/bg/11.jpeg" alt="背景11" />
+          <img src="/img/bg/12.jpeg" alt="背景12" />
+          <img src="/img/bg/13.jpeg" alt="背景13" />
+          <img src="/img/bg/14.jpeg" alt="背景14" />
+          <img src="/img/bg/15.jpeg" alt="背景15" />
+        </div>
+      </div>
+
+      <div class="right-panel">
+        <div id="imageContainer">
+          <img id="bg" src="/img/bg/1.png" alt="背景1" />
+          <div class="content">
+            <p class="name">爱德华</p>
+            <div class="content-text">
+              愿你鸿运当头，事业有成，步步高升，前程似锦！
+            </div>
+          </div>
+          <div class="bottom-text">xx科技公司，技术部</div>
+        </div>
+
+        <div class="adjustment-controls">
+          <button id="top">向上调整</button>
+          <button id="bottom">向下调整</button>
+        </div>
+
+        <button id="download">下载图片</button>
+      </div>
+    </div>
+
+    <script>
+      const fileInput = document.getElementById("fileInput");
+      const imageContainer = document.getElementById("bg");
+      const download = document.getElementById("download");
+      const btn1 = document.getElementById("btn1");
+      const btn2 = document.getElementById("btn2");
+      const btn3 = document.getElementById("btn3");
+      const btn4 = document.getElementById("btn4");
+
+      const topBtn = document.getElementById("top");
+      const bottomBtn = document.getElementById("bottom");
+
+      const content = [
+        "愿你鸿运当头，事业有成，步步高升，前程似锦！",
+        "愿你财源滚滚，蛇年行大运，爱情甜蜜，每天都笑嘻嘻！",
+        "灵蛇启航，前程似锦，蛇舞新春，富如其来！",
+        "蛇拿九稳，蛇力满格，蛇势待发，共赢未来！",
+        "愿你在蛇年，蛇行大运，事事如意！",
+        "愿你的笑容比花儿更灿烂，每个明天都比今天更耀眼！",
+        "愿君蛇年行大运，笑口常开，幸福如影随形！",
+        "愿你在蛇年如诗，未来可期，幸福绵长！",
+      ];
+
+      // 添加随机显示文本的函数
+      function showRandomContent() {
+        const randomIndex = Math.floor(Math.random() * content.length);
+        document.querySelector(".content-text").textContent =
+          content[randomIndex];
+      }
+
+      // 页面加载时显示随机文本
+      window.addEventListener("load", showRandomContent);
+
+      download.addEventListener("click", function () {
+        createDownloadLink();
+      });
+
+      // 添加按钮点击事件
+      btn1.addEventListener("click", function () {
+        bg.src = "/img/test1.png";
+        document.querySelector(".name").textContent = "张三";
+      });
+
+      btn2.addEventListener("click", function () {
+        bg.src = "/img/test2.jpeg";
+        document.querySelector(".name").textContent = "李四";
+      });
+
+      btn3.addEventListener("click", function () {
+        bg.src = "/img/test3.jpeg";
+        document.querySelector(".name").textContent = "王五";
+      });
+
+      btn4.addEventListener("click", function () {
+        bg.src = "/img/test4.jpeg";
+        document.querySelector(".name").textContent = "赵六";
+      });
+
+      fileInput.addEventListener("change", function () {
+        const file = fileInput.files[0];
+        if (file) {
+          const imgUrl = URL.createObjectURL(file);
+          imageContainer.src = imgUrl;
+          imageContainer.onerror = function () {
+            console.error("图片加载失败");
+            alert("图片加载失败，请尝试其他图片");
+          };
+        }
+      });
+
+      // 添加图片加载错误处理
+      document.querySelectorAll(".image-list img").forEach((img) => {
+        img.onerror = function () {
+          console.error("图片加载失败:", this.src);
+        };
+      });
+
+      // 修改图片点击事件
+      document.querySelectorAll(".image-list img").forEach((img) => {
+        img.addEventListener("click", function () {
+          const bgImage = document.getElementById("bg");
+          bgImage.src = this.src;
+
+          // 添加背景图加载错误处理
+          bgImage.onerror = function () {
+            console.error("背景图加载失败:", this.src);
+            alert("图片加载失败，请检查图片路径");
+          };
+        });
+      });
+
+      // 添加向上和向下按钮的事件监听器
+      let currentTop = 0;
+      const step = 10; // 每次移动10像素
+
+      topBtn.addEventListener("click", function () {
+        currentTop -= step;
+        document.getElementById("bg").style.top = currentTop + "px";
+      });
+
+      bottomBtn.addEventListener("click", function () {
+        currentTop += step;
+        document.getElementById("bg").style.top = currentTop + "px";
+      });
+
+      // 添加输入框失去焦点事件
+      const nameInput = document.getElementById("name");
+      nameInput.addEventListener("blur", function () {
+        const inputValue = this.value.trim();
+        if (inputValue) {
+          document.querySelector(".name").textContent = inputValue;
+        }
+      });
+
+      // 添加祝福语输入框失去焦点事件
+      const contentInput = document.getElementById("content");
+      contentInput.addEventListener("blur", function () {
+        const inputValue = this.value.trim();
+        if (inputValue) {
+          document.querySelector(".content-text").textContent = inputValue;
+        }
+      });
+
+      // 添加AI生成图片功能
+      const strengthValue = document.getElementById("strengthValue");
+      const generateImage = document.getElementById("generateImage");
+      const imagePrompt = document.getElementById("imagePrompt");
+      const generatingStatus = document.getElementById("generatingStatus");
+      const progressText = document.getElementById("progressText");
+
+      generateImage.addEventListener("click", async function () {
+        try {
+          const prompt = imagePrompt.value.trim();
+          const sessionId = document.getElementById("sessionId").value.trim();
+          const width = parseInt(document.getElementById("imageWidth").value);
+          const height = parseInt(document.getElementById("imageHeight").value);
+
+          // 输入验证
+          if (!prompt) {
+            alert("请输入图片描述");
+            return;
+          }
+          if (!sessionId) {
+            alert("请输入SessionID");
+            return;
+          }
+          if (width < 64 || width > 2048 || height < 64 || height > 2048) {
+            alert("图片尺寸必须在64到2048像素之间");
+            return;
+          }
+
+          // 添加加载状态
+          generateImage.disabled = true;
+          generateImage.textContent = "生成中...";
+          generateImage.classList.add("opacity-50");
+          generatingStatus.style.display = "block";
+
+          const generateRes = await fetch("/v1/images/generations", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${sessionId}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "jimeng-2.1",
+              prompt: prompt,
+              width: width,
+              height: height
+            }),
+          });
+
+          if (!generateRes.ok) {
+            throw new Error(`请求失败: ${generateRes.status}`);
+          }
+
+          const result = await generateRes.json();
+          console.log("API Response:", result);
+
+          // 显示生成结果
+          const resultGallery = document.getElementById("resultGallery");
+          const downloadButtons = document.getElementById("downloadButtons");
+          resultGallery.innerHTML = "";
+          downloadButtons.innerHTML = "";
+
+          if (result.data && Array.isArray(result.data)) {
+            result.data.forEach((item, index) => {
+              const imgUrl = item.url;
+
+              // 创建图片容器
+              const imgContainer = document.createElement("div");
+              imgContainer.className = "relative group";
+
+              // 创建图片元素
+              const img = document.createElement("img");
+              img.src = imgUrl;
+              img.className =
+                "w-full h-auto rounded-lg cursor-pointer transition transform hover:scale-105";
+              img.alt = `生成图片 ${index + 1}`;
+
+              // 创建图片编号标签
+              const label = document.createElement("div");
+              label.className =
+                "absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-md text-sm";
+              label.textContent = `#${index + 1}`;
+
+              // 组装图片容器
+              imgContainer.appendChild(img);
+              imgContainer.appendChild(label);
+              resultGallery.appendChild(imgContainer);
+
+              // 添加点击放大预览
+              img.onclick = () => {
+                const modal = document.createElement("div");
+                modal.className = "modal";
+                modal.onclick = () => modal.remove();
+
+                const modalImg = document.createElement("img");
+                modalImg.src = imgUrl;
+                modal.appendChild(modalImg);
+                document.body.appendChild(modal);
+              };
+
+              // 添加使用按钮
+              const useBtn = document.createElement("button");
+              useBtn.textContent = `使用图片 #${index + 1}`;
+              useBtn.className =
+                "bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-sm";
+              useBtn.onclick = () => {
+                document.getElementById("bg").src = imgUrl;
+              };
+              downloadButtons.appendChild(useBtn);
+            });
+
+            document.getElementById("generationResult").style.display = "block";
+          } else {
+            throw new Error("无效的API响应格式");
+          }
+        } catch (error) {
+          console.error("生成失败:", error);
+          alert("图片生成失败: " + error.message);
+        } finally {
+          generateImage.disabled = false;
+          generateImage.textContent = "AI生成图片";
+          generateImage.classList.remove("opacity-50");
+          generatingStatus.style.display = "none";
+          // 更新积分信息
+          const sessionId = document.getElementById("sessionId").value.trim();
+          fetchCredits(sessionId);
+        }
+      });
+
+      // 添加尺寸输入验证
+      document
+        .getElementById("imageWidth")
+        .addEventListener("change", function () {
+          const value = parseInt(this.value);
+          if (value < 64) this.value = 64;
+          if (value > 2048) this.value = 2048;
+        });
+
+      document
+        .getElementById("imageHeight")
+        .addEventListener("change", function () {
+          const value = parseInt(this.value);
+          if (value < 64) this.value = 64;
+          if (value > 2048) this.value = 2048;
+        });
+
+      // 添加复制SessionID功能
+      document
+        .getElementById("sessionId")
+        .addEventListener("dblclick", function () {
+          this.select();
+          document.execCommand("copy");
+          alert("SessionID已复制到剪贴板");
+        });
+    </script>
+  </body>
+</html>
